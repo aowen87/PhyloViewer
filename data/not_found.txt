@@ -1,0 +1,35 @@
+Spartobacteria_genera_incertae_sedis
+WS3_genera_incertae_sedis
+Clostridium IV
+Gp16
+Gp9
+Singularimonas
+Silicibacter
+Clostridium XlVb
+Crabtreella
+Lucibacterium
+Subdivision3_genera_incertae_sedis
+Clostridium XI
+Serpens
+Planococcaceae_incertae_sedis
+Lachnospiracea_incertae_sedis
+Zhangella
+Clostridium sensu stricto
+Catellibacterium
+Humicoccus
+Zimmermannella
+Gp6
+GpXIII
+Saxeibacter
+Listonella
+Escherichia/Shigella
+Clostridium XlVa
+Naxibacter
+Gp4
+Clostridium III
+Petrobacter
+Clostridium XII
+GpIX
+Chthonomonas/Armatimonadetes_gp3
+GpI
+TM7_genera_incertae_sedis

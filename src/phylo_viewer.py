@@ -9,8 +9,8 @@ In particular, we are aiming for a means of visualizing
 the results of microbiota studies, where samples of the 
 micriobiome populations are measured at different times. 
 '''
-from OpenGLContext import testingcontext
 from node import *
+from newick_tree import NewickTree
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GL import *
@@ -18,7 +18,6 @@ from OpenGL.arrays import vbo
 from OpenGL.GL import shaders
 import sys
 import math
-from newick_tree import NewickTree
 import numpy
 import argparse
 

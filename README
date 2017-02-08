@@ -1,0 +1,32 @@
+Author: Alister Maguire
+Advisor: John Conery
+
+This is a prototype for a phylogenetic tree viewing application. 
+In particular, we are looking for a better way to view data that 
+comes from microbiota studies. This data generally consists of a 
+series of time samples, each containing the organisms present at
+the time the sample was taken. In our viewer, we are aiming to 
+create a cylinder of phylogenetic trees from each sample and display
+the connections between these samples. 
+
+
+(As this prototype is under construction, the following guidlines
+ are subject to change)
+
+Dependencies:
+	-python2.7 (python 3 may work, but it isn't tested)
+	-PyOpenGl
+	-numpy
+
+Usage: 
+	-Within src, you will find phylo_viewer.py
+         phylo_viewer runs as follows:
+
+	 python phylo_viewer.py <input_newick_tree>
+
+	 I have included some sample trees for viewing
+	 within the trees directory. You can start 
+	 the application by the following command
+         within the src directory:
+
+	 python phylo_viewer.py ../trees/full_tree
