@@ -15,7 +15,7 @@ the connections between these samples.
 
 Dependencies:
 	-python2.7 (python 3 may work, but it isn't tested)
-	-PyOpenGl
+	-PyOpenGL
 	-numpy
 
 Usage: 
