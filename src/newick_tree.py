@@ -19,14 +19,16 @@ recognitions:
 '''
 
 from node import Node, Edge
+from counts_map import CountsMap
 import argparse
 import math
 
 class NewickTree():
 
-    def __init__(self, newick):
+    def __init__(self, newick, counts_map):
         self.total_leaves = 0
         self.root         = Node()
+        self.counts_map   = counts_map
 
         #A list of odd characters I've found in newick strings. 
 	self.odd_chars    = ['.', ' ', '_', '/', '-', '+', '*']
@@ -189,6 +191,7 @@ class NewickTree():
 
             else:
                 name, i = self.get_sub_str(newick, i)
+                name = name.strip()
                 cur_node.set_name(name)
            
             i += 1
@@ -304,8 +307,17 @@ class NewickTree():
         '''
         size = len(self.nodes)
         for i in range(size):
-            x = self.nodes[i].get_coord(0)
-            y = self.nodes[i].get_coord(1)
+            cur_node = self.nodes[i]
+            if cur_node.is_leaf():
+                counts = self.counts_map.get_counts(cur_node.get_name())
+                if counts == None:
+                    print('ERROR: leaf name not in counts_map!')
+                    print('Aborting tree creation')
+                    return 0
+                self.nodes[i].set_counts(counts)
+
+            x = cur_node.get_coord(0)
+            y = cur_node.get_coord(1)
             if self.total_leaves > 5:
                 scale = self.total_leaves*.1 
                 self.nodes[i].set_coord(0, x*scale)
@@ -327,10 +339,13 @@ if __name__ == '__main__':
     Command line testing. 
     '''
     parser = argparse.ArgumentParser()
-    parser.add_argument('newick')
+    parser.add_argument('newick_file', type=str)
+    parser.add_argument('condensed_counts_file', type=str)
     args  = parser.parse_args()
-    n_f   = open(args.newick, "r")
+    n_f   = open(args.newick_file, "r")
+
     n_str = n_f.readlines()[0]
-    tree = NewickTree(n_str)
+    c_map = CountsMap(condensed_counts_file)
+    tree  = NewickTree(n_str, c_map)
     tree.preorder()
 

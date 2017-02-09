@@ -10,7 +10,6 @@ the results of microbiota studies, where samples of the
 micriobiome populations are measured at different times. 
 '''
 from node import *
-from newick_tree import NewickTree
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GL import *
@@ -18,6 +17,8 @@ from OpenGL.arrays import vbo
 from OpenGL.GL import shaders
 import sys
 import math
+from newick_tree import NewickTree
+from counts_map import CountsMap
 import numpy
 import argparse
 
@@ -47,9 +48,11 @@ class TreeViewer():
         raw_points = []
         for node in self.nodes:
             if node.is_leaf():
-                r = .2
+                r = 20*node.get_count(0) 
+                if r == None:
+                    print("ERROR: couldn't retreive population count from node")
             else:
-                r = .05
+                r = .0001
             x, y, z = node.get_coords()
             raw_points.extend(self.create_circle(r, x, y, z))
         
@@ -259,12 +262,21 @@ class TreeViewer():
 
 if __name__ == '__main__': 
     parser = argparse.ArgumentParser()
-    parser.add_argument('newick')
-    newick_file = parser.parse_args().newick
+    parser.add_argument('newick_file', type=str)
+    parser.add_argument('condensed_counts_file', type=str)
+    args = parser.parse_args()
+    newick_file = args.newick_file
+    c_file      = args.condensed_counts_file
+
     
     newick_f = open(newick_file, 'r')
+
+    c_map    = CountsMap(c_file)
     newick_s = newick_f.readlines()[0]
-    tree     = NewickTree(newick_s) 
+    tree     = NewickTree(newick_s, c_map) 
+    #if tree == 0:
+    #   print('ERROR: failed to build tree')
+    #   sys.exit()
     tv       = TreeViewer(tree.get_nodes(), tree.get_edges(), tree.total_leaves) 
     tv.execute()
 

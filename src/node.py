@@ -12,6 +12,7 @@ class Node():
     def __init__(self, name="", coords=None):
         self.name   = name
         self.coords = [0.0]*3
+        self.counts = []
         self.left   = None
         self.right  = None
         self.parent = None
@@ -36,6 +37,14 @@ class Node():
             
             for i in range(3):
                 self.coords[i] = coords[i]
+
+    def get_count(self, idx):
+        if idx >= len(self.counts) or idx < 0:
+            return None
+        return self.counts[idx]
+
+    def get_counts_list(self):
+        return self.counts
          
     def get_weights(self):
         return self.e_weights
@@ -125,6 +134,9 @@ class Node():
     def set_coord(self, i, val):
         self.coords[i] = val
 
+    def set_counts(self, counts):
+        self.counts = counts
+
     def is_leaf(self):
         return True if (self.right == None and self.left == None) else False
 
@@ -155,3 +167,9 @@ class Edge():
     
     def get_child_coords(self):
         return self.c_coords
+
+    def get_child(self):
+        return self.child
+
+    def get_parent(self):
+        return self.parent
