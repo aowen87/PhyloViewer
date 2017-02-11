@@ -39,6 +39,9 @@ class NewickTree():
         self.init_sphere_coordinates()
         self.finalize_coordinates()
 
+    def get_num_samples(self):
+        return self.counts_map.get_sample_count()
+
     def get_root(self):
         return self.root
 

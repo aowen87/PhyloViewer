@@ -40,6 +40,8 @@ class CountsMap():
         #of the experiment.
         self.counts_lst = [line.rstrip('\n').split(',') for line in counts[1:]]
 
+        self.num_samples = len(self.counts_lst[0])-1
+
         for lst in self.counts_lst:
             for i in range(1, len(lst)):
                 lst[i] = int(lst[i])
@@ -71,6 +73,8 @@ class CountsMap():
         else:
             return None
          
+    def get_sample_count(self):
+        return self.num_samples
 
 
 

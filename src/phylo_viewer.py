@@ -22,14 +22,18 @@ from counts_map import CountsMap
 import numpy
 import argparse
 
+SAMPLE_DIM=15
+SPACING   = 5
+
 class TreeViewer():
     '''
        A 3d pyholgenetic tree viewer (under construction) 
     '''
 
 
-    def __init__(self, nodes, edges, leaf_count):
+    def __init__(self, nodes, edges, leaf_count, sample_count):
     
+        self.num_samples = sample_count
         self.leaf_count  = leaf_count
         self.nodes       = nodes
         self.edges       = edges
@@ -45,23 +49,36 @@ class TreeViewer():
         self.start_zoom  = 10
 
         #Create the circle geometry
+        start_z = -1*SPACING*(SAMPLE_DIM/2) #(self.num_samples/100)*-5
         raw_points = []
-        for node in self.nodes:
-            if node.is_leaf():
-                r = 20*node.get_count(0) 
-                if r == None:
-                    print("ERROR: couldn't retreive population count from node")
-            else:
-                r = .0001
-            x, y, z = node.get_coords()
-            raw_points.extend(self.create_circle(r, x, y, z))
-        
-        #add the edge geometry to raw_points
-        for e in self.edges:
-            x1, y1, z1 = e.get_parent_coords()
-            x2, y2, z2 = e.get_child_coords()
-            raw_points.extend([x1, y1, z1, x2, y2, z2])
+        cur_z      = start_z
 
+        #TODO:this is incredibly inefficient -- let's do better
+        for i in range(SAMPLE_DIM):
+            for node in self.nodes:
+                if node.is_leaf():
+                    r = 20*node.get_count(i) 
+                    if r == None:
+                        print("ERROR: couldn't retreive population count from node")
+                else:
+                    r = .0001
+                x, y, z = node.get_coords()
+                raw_points.extend(self.create_circle(r, x, y, cur_z))
+            cur_z += SPACING
+       
+        #add the edge geometry to raw_points
+        #TODO:again, incredibly inefficient 
+        cur_z = start_z
+        for i in range(SAMPLE_DIM):
+            for e in self.edges:
+                x1, y1, z1 = e.get_parent_coords()
+                x2, y2, z2 = e.get_child_coords()
+                raw_points.extend([x1, y1, cur_z, x2, y2, cur_z])
+            cur_z += SPACING
+
+        raw_points.extend(self.create_circle(2, 0, 0, 0))
+        l = self.create_circle(2, 0, 0, -1)
+        raw_points.extend(l)
         #convert all geometry to a numpy array
         self.vertices = numpy.array(raw_points,
                                     dtype=numpy.float32)
@@ -147,12 +164,12 @@ class TreeViewer():
         Display the geometry. 
         '''
 
-        num_nodes = len(self.nodes)
-        num_edges = len(self.edges)
+        #testing multi layer dipslay
+        num_nodes = len(self.nodes)*SAMPLE_DIM
+        num_edges = len(self.edges)*SAMPLE_DIM
 
         glLoadIdentity()
-        #leaf_count*12 just happens to be a nice start
-        gluLookAt(0,0,self.leaf_count*12+self.start_zoom + self.zoom_val,
+        gluLookAt(0,0,self.leaf_count*15+self.start_zoom + self.zoom_val,
                   0,0,0,
                   0,1,0)
         glClearColor(1.0, 1.0, 1.0, 1.0)
@@ -177,7 +194,9 @@ class TreeViewer():
         while i < (num_edges):
             glDrawArrays(GL_LINES, i*2 + start, 2)    
             i += 1
-
+        #quadric = gluNewQuadric()
+        #gluCylinder(quadric, 2, 1, 2, 20, 20)
+        
         glPopMatrix()
         glBindVertexArray(0)
         glUseProgram(0)
@@ -277,6 +296,7 @@ if __name__ == '__main__':
     #if tree == 0:
     #   print('ERROR: failed to build tree')
     #   sys.exit()
-    tv       = TreeViewer(tree.get_nodes(), tree.get_edges(), tree.total_leaves) 
+    tv       = TreeViewer(tree.get_nodes(), tree.get_edges(), tree.total_leaves,
+                          tree.get_num_samples()) 
     tv.execute()
 
