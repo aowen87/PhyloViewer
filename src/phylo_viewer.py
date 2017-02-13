@@ -76,9 +76,6 @@ class TreeViewer():
                 raw_points.extend([x1, y1, cur_z, x2, y2, cur_z])
             cur_z += SPACING
 
-        raw_points.extend(self.create_circle(2, 0, 0, 0))
-        l = self.create_circle(2, 0, 0, -1)
-        raw_points.extend(l)
         #convert all geometry to a numpy array
         self.vertices = numpy.array(raw_points,
                                     dtype=numpy.float32)
