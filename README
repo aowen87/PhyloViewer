@@ -19,7 +19,13 @@ Dependencies:
 	-numpy
 
 Usage: 
-	-Within src, you will find phylo_viewer.py
+	-Within src, you will find two different version of phylo_viewer.
+         The first is single_phylo_viewer.py, which draws a single tree. 
+         The second is layered_phylo_viewer.py, which draws the first
+         30 time slices into a cylinder. Both are run using the same
+         commands, so, in the following example, I'm using 'phylo_viewer.py'
+         to represent both version. 
+
          phylo_viewer runs as follows:
 
 	 python phylo_viewer.py <input_newick_tree> <condensed_counts_file>
