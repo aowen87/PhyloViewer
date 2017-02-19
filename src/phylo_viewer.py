@@ -40,8 +40,11 @@ class TreeViewer():
         self.rot_y_right = 0
         self.rot_x_up    = 0
         self.rot_x_down  = 0
+        self.rot_z_left  = 0
+        self.rot_z_right = 0
         self.y_deg       = 0
         self.x_deg       = 0
+        self.z_deg       = 0
         self.zoom_in     = 0
         self.zoom_out    = 0
         self.zoom_val    = 0
@@ -140,8 +143,14 @@ class TreeViewer():
         elif self.zoom_out:
             self.zoom_val += 6
             glutPostRedisplay()
+        if self.rot_z_right:
+            self.z_deg += 1
+            glutPostRedisplay()
+        elif self.rot_z_left:
+            self.z_deg -= 1
+            glutPostRedisplay()
             
-    def key_press(self, key, x, y):
+    def special_key_press(self, key, x, y):
         '''
         Check for key press. If so, 
         set rotations to true. 
@@ -154,10 +163,19 @@ class TreeViewer():
             self.rot_x_up = 1
         elif key == GLUT_KEY_DOWN:
             self.rot_x_down = 1
-
         glutPostRedisplay()
 
-    def key_release(self, key, x, y):
+    def char_key_press(self, key, x, y):
+        '''
+        '''
+        if key == 'c' or key == 'C':
+            self.rot_z_right = 1
+        elif key == 'z' or key == 'Z':
+            self.rot_z_left = 1
+        glutPostRedisplay()
+
+
+    def special_key_release(self, key, x, y):
         '''
         Check for key release. This is used for 
         shutting down rotation signals. 
@@ -166,11 +184,19 @@ class TreeViewer():
             self.rot_y_left = 0
         elif key == GLUT_KEY_RIGHT:
             self.rot_y_right = 0
-        if key == GLUT_KEY_UP:
+        elif key == GLUT_KEY_UP:
             self.rot_x_up = 0
         elif key == GLUT_KEY_DOWN:
             self.rot_x_down = 0
         glutPostRedisplay()
+
+    def char_key_release(self, key, x, y):
+        if key == 'c' or key == 'C':
+            self.rot_z_right = 0
+        elif key == 'z' or key == 'Z':
+            self.rot_z_left = 0
+        glutPostRedisplay()
+
         
     def mouse_button(self, button, state, x, y):
         '''
@@ -207,6 +233,7 @@ class TreeViewer():
         glPushMatrix()
         glRotatef(self.x_deg, 1, 0, 0)
         glRotatef(self.y_deg, 0, 1, 0)
+        glRotatef(self.z_deg, 0, 0, 1)
         glDisable(GL_CULL_FACE)
 
         #Draw the nodes
@@ -308,10 +335,11 @@ class TreeViewer():
         glMatrixMode(GL_MODELVIEW)
 
         #glutIgnoreKeyRepeat(1)
-        #glutKeyboardFunc(processNormalKeys)
-        glutSpecialFunc(self.key_press)
+        glutSpecialFunc(self.special_key_press)
+        glutKeyboardFunc(self.char_key_press)
         glutIgnoreKeyRepeat(1)
-        glutSpecialUpFunc(self.key_release)
+        glutSpecialUpFunc(self.special_key_release)
+        glutKeyboardUpFunc(self.char_key_release)
         glutIdleFunc(self.key_check)
     
         glutMouseFunc(self.mouse_button)
@@ -326,7 +354,7 @@ if __name__ == '__main__':
     parser.add_argument('newick_file', type=str)
     parser.add_argument('condensed_counts_file', type=str)
     parser.add_argument('layer_count', type=int, help="the number of samples to display",
-                         nargs='?', default=15)
+                         nargs='?', default=MAX_LAYERS)
     args = parser.parse_args()
     newick_file = args.newick_file
     c_file      = args.condensed_counts_file

@@ -39,7 +39,7 @@ Usage:
              zoom in  -- left mouse button
              zoom out -- right mouse button
              rotation -- arrow keys (up, down, left, right)
-
+                         'z' and 'c' for z axis rotation (case insensitive) 
 
          **Note**
          The viewer is currently using glCylinder for drawing the cylinders
