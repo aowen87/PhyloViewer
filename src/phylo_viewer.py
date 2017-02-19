@@ -249,6 +249,7 @@ class TreeViewer():
             glDrawArrays(GL_LINES, i*2 + start, 2)    
             i += 1
 
+        quadric = gluNewQuadric()
         for c in self.cylinders:
             top = c[0]
             bot = c[1]
@@ -260,7 +261,6 @@ class TreeViewer():
             #x = min_x + abs(top_x - bot_x)
             #y = min_y + abs(top_y - bot_y)
             #z = min_z + abs(top_z - bot_z)
-            quadric = gluNewQuadric()
             glPushMatrix()
             glTranslate(top_x, top_y, top_z) 
             gluCylinder(quadric, bot_r, top_r, abs(top_z-bot_z), 20, 20)
