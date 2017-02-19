@@ -19,16 +19,14 @@ Dependencies:
 	-numpy
 
 Usage: 
-	-Within src, you will find two different version of phylo_viewer.
-         The first is single_phylo_viewer.py, which draws a single tree. 
-         The second is layered_phylo_viewer.py, which draws the first
-         30 time slices into a cylinder. Both are run using the same
-         commands, so, in the following example, I'm using 'phylo_viewer.py'
-         to represent both version. 
+	-Within src, you will find phylo_viewer.py, which is the main
+         program. Currently, the viewer allows you to run with a chosen
+         number of layers (trees) or use the default. The default is set
+         to 15 trees, and the max is currently set to 30. 
 
          phylo_viewer runs as follows:
 
-	 python phylo_viewer.py <input_newick_tree> <condensed_counts_file>
+	 python phylo_viewer.py <input_newick_tree> <condensed_counts_file> <optional_layer_count>
 
 	 I have included some sample trees for viewing
 	 within the trees directory. You can start 
@@ -37,8 +35,14 @@ Usage:
 
 	 python phylo_viewer.py ../trees/full_tree ../data/condensed_counts.txt
 
-
          View control:
              zoom in  -- left mouse button
              zoom out -- right mouse button
              rotation -- arrow keys (up, down, left, right)
+
+
+         **Note**
+         The viewer is currently using glCylinder for drawing the cylinders
+         between leaves. This is not very efficient and will produce a lag with
+         a large number of layers and large trees. These cylinders will eventually
+         be drawn through shaders, but, for now, just be aware of the lag. 

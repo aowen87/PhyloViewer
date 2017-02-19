@@ -22,17 +22,16 @@ from counts_map import CountsMap
 import numpy
 import argparse
 
-SAMPLE_DIM=15
-SPACING   = 5
+MAX_LAYERS = 30
+SPACING     = 3
 
 class TreeViewer():
     '''
        A 3d pyholgenetic tree viewer (under construction) 
     '''
-
-
-    def __init__(self, nodes, edges, leaf_count, sample_count):
+    def __init__(self, nodes, edges, leaf_count, sample_count, layers):
     
+        self.layer_count = layers
         self.num_samples = sample_count
         self.leaf_count  = leaf_count
         self.nodes       = nodes
@@ -49,12 +48,42 @@ class TreeViewer():
         self.start_zoom  = 10
 
         #Create the circle geometry
-        start_z = -1*SPACING*(SAMPLE_DIM/2) #(self.num_samples/100)*-5
+        start_z = -1*SPACING*(self.layer_count/2) #(self.num_samples/100)*-5
         raw_points = []
         cur_z      = start_z
+        self.cylinders  = []
+        self.num_circles = 0
+
+
+        #Prototype for leaf interpolation. 
+        #Eventually, I'll want to send the cylinder geometry to the
+        #gpu for direct rendering. For now, though, I'm just using gluCylinder. 
+        for node in self.nodes:
+            x, y, z = node.get_coords()
+            if node.is_leaf():
+                samples = node.get_counts_list() 
+                i = 0
+                while i < (self.layer_count-1):
+                    if samples[i] > 0 and samples[i+1] > 0:
+                        while (samples[i+1] > 0) and i < (self.layer_count-1):
+                            top = (x, y, start_z + i*SPACING, 20*samples[i])
+                            bot = (x, y, start_z + (i+1)*SPACING, 20*samples[i+1])
+                            self.cylinders.append((top, bot))
+                            i += 1
+                    elif samples[i] > 0:
+                        self.num_circles += 1
+                        raw_points.extend(self.create_circle(20*samples[i], x, y, start_z + i*SPACING))
+                    i += 1
+            else:
+                for i in range(self.layer_count):
+                    self.num_circles += 1
+                    raw_points.extend(self.create_circle(.0001, x, y, start_z + i*SPACING))
+             
+
 
         #TODO:this is incredibly inefficient -- let's do better
-        for i in range(SAMPLE_DIM):
+        ''''
+        for i in range(self.layer_count):
             for node in self.nodes:
                 if node.is_leaf():
                     r = 20*node.get_count(i) 
@@ -65,11 +94,12 @@ class TreeViewer():
                 x, y, z = node.get_coords()
                 raw_points.extend(self.create_circle(r, x, y, cur_z))
             cur_z += SPACING
+        '''
        
         #add the edge geometry to raw_points
         #TODO:again, incredibly inefficient 
         cur_z = start_z
-        for i in range(SAMPLE_DIM):
+        for i in range(self.layer_count):
             for e in self.edges:
                 x1, y1, z1 = e.get_parent_coords()
                 x2, y2, z2 = e.get_child_coords()
@@ -105,10 +135,10 @@ class TreeViewer():
             self.x_deg -= 1
             glutPostRedisplay()
         if self.zoom_in:
-            self.zoom_val -= 4 
+            self.zoom_val -= 6 
             glutPostRedisplay()
         elif self.zoom_out:
-            self.zoom_val += 4
+            self.zoom_val += 6
             glutPostRedisplay()
             
     def key_press(self, key, x, y):
@@ -162,8 +192,8 @@ class TreeViewer():
         '''
 
         #testing multi layer dipslay
-        num_nodes = len(self.nodes)*SAMPLE_DIM
-        num_edges = len(self.edges)*SAMPLE_DIM
+        num_nodes = self.num_circles #len(self.nodes)*self.layer_count
+        num_edges = len(self.edges)*self.layer_count
 
         glLoadIdentity()
         gluLookAt(0,0,self.leaf_count*15+self.start_zoom + self.zoom_val,
@@ -191,9 +221,24 @@ class TreeViewer():
         while i < (num_edges):
             glDrawArrays(GL_LINES, i*2 + start, 2)    
             i += 1
-        #quadric = gluNewQuadric()
-        #gluCylinder(quadric, 2, 1, 2, 20, 20)
-        
+
+        for c in self.cylinders:
+            top = c[0]
+            bot = c[1]
+            top_x, top_y, top_z, top_r = top
+            bot_x, bot_y, bot_z, bot_r = bot
+            #min_x = min(top_x, bot_x)
+            #min_y = min(top_y, bot_y)
+            #min_z = min(top_z, bot_z)
+            #x = min_x + abs(top_x - bot_x)
+            #y = min_y + abs(top_y - bot_y)
+            #z = min_z + abs(top_z - bot_z)
+            quadric = gluNewQuadric()
+            glPushMatrix()
+            glTranslate(top_x, top_y, top_z) 
+            gluCylinder(quadric, bot_r, top_r, abs(top_z-bot_z), 20, 20)
+            glPopMatrix() 
+
         glPopMatrix()
         glBindVertexArray(0)
         glUseProgram(0)
@@ -259,7 +304,7 @@ class TreeViewer():
         glEnable(GL_LIGHT0)
         glutDisplayFunc(self.display)
         glMatrixMode(GL_PROJECTION)
-        gluPerspective(1.,1.,1.,9000.)
+        gluPerspective(1.,1.,-900.,900.)
         glMatrixMode(GL_MODELVIEW)
 
         #glutIgnoreKeyRepeat(1)
@@ -280,11 +325,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('newick_file', type=str)
     parser.add_argument('condensed_counts_file', type=str)
+    parser.add_argument('layer_count', type=int, help="the number of samples to display",
+                         nargs='?', default=15)
     args = parser.parse_args()
     newick_file = args.newick_file
     c_file      = args.condensed_counts_file
+    layers      = (args.layer_count if args.layer_count <= MAX_LAYERS 
+                  and args.layer_count > 0 else MAX_LAYERS)
 
-    
     newick_f = open(newick_file, 'r')
 
     c_map    = CountsMap(c_file)
@@ -294,6 +342,6 @@ if __name__ == '__main__':
     #   print('ERROR: failed to build tree')
     #   sys.exit()
     tv       = TreeViewer(tree.get_nodes(), tree.get_edges(), tree.total_leaves,
-                          tree.get_num_samples()) 
+                          tree.get_num_samples(), layers) 
     tv.execute()
 
