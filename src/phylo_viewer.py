@@ -144,10 +144,10 @@ class TreeViewer():
             self.zoom_val += 6
             glutPostRedisplay()
         if self.rot_z_right:
-            self.z_deg += 1
+            self.z_deg -= 1
             glutPostRedisplay()
         elif self.rot_z_left:
-            self.z_deg -= 1
+            self.z_deg += 1
             glutPostRedisplay()
             
     def special_key_press(self, key, x, y):
