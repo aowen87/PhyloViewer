@@ -66,6 +66,13 @@ class TreeViewer():
             if node.is_leaf():
                 samples = node.get_counts_list() 
                 i = 0
+                 
+                #if we only have one layer, just create spheres. 
+                if self.layer_count == 1:
+                        self.num_circles += 1
+                        raw_points.extend(self.create_circle(20*samples[i], x, y, start_z + i*SPACING))
+
+                #if we have multiple layers, look for cylinders.  
                 while i < (self.layer_count-1):
                     if samples[i] > 0 and samples[i+1] > 0:
                         while (samples[i+1] > 0) and i < (self.layer_count-1):
