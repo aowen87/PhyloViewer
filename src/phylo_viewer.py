@@ -76,8 +76,8 @@ class TreeViewer():
                 while i < (self.layer_count-1):
                     if samples[i] > 0 and samples[i+1] > 0:
                         while (samples[i+1] > 0) and i < (self.layer_count-1):
-                            top = (x, y, start_z + i*SPACING, 20*samples[i])
-                            bot = (x, y, start_z + (i+1)*SPACING, 20*samples[i+1])
+                            bot = (x, y, start_z + (i-1)*SPACING, 20*samples[i])
+                            top = (x, y, start_z + (i)*SPACING, 20*samples[i+1])
                             self.cylinders.append((top, bot))
                             i += 1
                     elif samples[i] > 0:
