@@ -57,7 +57,7 @@ class NewickTree():
     def cascade_depth(self, parent):
         '''
         Cascade through the nodes and update the depths
-        accordingly. 
+        accordingly.
         '''
         if parent.get_left() != None:
             d1 = parent.depth + 1
@@ -69,6 +69,7 @@ class NewickTree():
             parent.get_right().depth = d1
             d2 = self.cascade_depth(parent.get_right())
             return d2 if d2 >= d1 else d1
+        
 
     def preorder(self):
         self.display_preorder(self.root)

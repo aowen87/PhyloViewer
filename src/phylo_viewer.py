@@ -9,6 +9,7 @@ In particular, we are aiming for a means of visualizing
 the results of microbiota studies, where samples of the 
 micriobiome populations are measured at different times. 
 '''
+from pylab import *
 from node import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
@@ -30,11 +31,11 @@ class TreeViewer():
     '''
        A 3d pyholgenetic tree viewer (under construction) 
     '''
-    def __init__(self, nodes, edges, leaf_count, sample_count, layers):
+    def __init__(self, nodes, edges, num_leaves, sample_count, layers):
     
         self.layer_count = layers
         self.num_samples = sample_count
-        self.leaf_count  = leaf_count
+        self.num_leaves  = num_leaves
         self.nodes       = nodes
         self.edges       = edges
         self.rot_y_left  = 0
@@ -61,7 +62,11 @@ class TreeViewer():
 
         colors = []
 
-        leaf_color = [0.2, 0.8, 0.3, 1.0]
+        color_map  = matplotlib.cm.get_cmap('Paired')        
+        #leaf_color = [0.2, 0.8, 0.3, 1.0]
+        leaf_count = 0
+        num_layered_leaves =  num_leaves*layers
+        
         #Prototype for leaf interpolation. 
         #Eventually, I'll want to send the cylinder geometry to the
         #gpu for direct rendering. For now, though, I'm just using gluCylinder. 
@@ -73,33 +78,44 @@ class TreeViewer():
                  
                 #if we only have one layer, just create spheres. 
                 if self.layer_count == 1:
-                        self.num_circles += 1
-                        raw_points.extend(self.create_circle(20*samples[i], x, y, start_z + i*SPACING))
-                        colors.extend(leaf_color*360)
+                    self.num_circles += 1
+                    raw_points.extend(self.create_circle(20*samples[i], x, y, start_z + i*SPACING))
+                    leaf_count += 1
+                    colors.extend(color_map(float(leaf_count/num_layered_leaves))*360)
 
                 #if we have multiple layers, look for cylinders.  
-                
                 while i < (self.layer_count-1):
+                    #FIXME: I believe the cylinders are actually off
                     if samples[i] > 0 and samples[i+1] > 0:
                         while (samples[i+1] > 0) and i < (self.layer_count-1):
-                            top = (x, y, start_z + i*SPACING, 20*samples[i])
-                            bot = (x, y, start_z + (i+1)*SPACING, 20*samples[i+1])
+                            bot = (x, y, start_z + i*SPACING, 20*samples[i])
+                            top = (x, y, start_z + (i+1)*SPACING, 20*samples[i+1])
                             self.cylinders.append((top, bot))
+                            leaf_count += 1
                             i += 1
                     elif samples[i] > 0:
                         self.num_circles += 1
                         raw_points.extend(self.create_circle(20*samples[i], x, y, start_z + i*SPACING))
-                        colors.extend(leaf_color*360)
+                        colors.extend(color_map(float(leaf_count/num_layered_leaves))*360)
+                        leaf_count += 1
+                    else:
+                        leaf_count += 1
                     i += 1
+                leaf_count += 1
                 
             else:
                 for i in range(self.layer_count):
                     self.num_circles += 1
                     raw_points.extend(self.create_circle(.001, x, y, start_z + i*SPACING))
-                    colors.extend(leaf_color*360)
-                    #colors.extend([0.4, 0.2, 0.2, 1.0]*360)
+                    #leaf_count += 1
+                    #colors.extend(color_map(float(leaf_count/num_layered_leaves))*360)
+                    colors.extend([0.4, 0.2, 0.2, 1.0]*360)
        
 
+        print("leaf count: " + str(leaf_count))
+        print("num of leaves: " + str(num_leaves))
+        print("num layered leaves: " + str(num_layered_leaves))
+        print("num circles: " + str(self.num_circles))
         #add the edge geometry to raw_points
         #TODO:again, incredibly inefficient 
         cur_z = start_z
@@ -227,7 +243,7 @@ class TreeViewer():
         num_edges = len(self.edges)*self.layer_count
 
         glLoadIdentity()
-        gluLookAt(0,0,self.leaf_count*15+self.start_zoom + self.zoom_val,
+        gluLookAt(0,0,self.num_leaves*15+self.start_zoom + self.zoom_val,
                   0,0,0,
                   0,1,0)
         glClearColor(1.0, 1.0, 1.0, 1.0)
