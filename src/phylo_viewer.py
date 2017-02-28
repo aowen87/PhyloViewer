@@ -21,9 +21,10 @@ from newick_tree import NewickTree
 from counts_map import CountsMap
 import numpy
 import argparse
+import ctypes
 
 MAX_LAYERS = 30
-SPACING     = 3
+SPACING    = 3
 
 class TreeViewer():
     '''
@@ -56,8 +57,11 @@ class TreeViewer():
         cur_z      = start_z
         self.cylinders  = []
         self.num_circles = 0
+        self.num_edges   = 0
 
+        colors = []
 
+        leaf_color = [0.2, 0.8, 0.3, 1.0]
         #Prototype for leaf interpolation. 
         #Eventually, I'll want to send the cylinder geometry to the
         #gpu for direct rendering. For now, though, I'm just using gluCylinder. 
@@ -71,8 +75,10 @@ class TreeViewer():
                 if self.layer_count == 1:
                         self.num_circles += 1
                         raw_points.extend(self.create_circle(20*samples[i], x, y, start_z + i*SPACING))
+                        colors.extend(leaf_color*360)
 
                 #if we have multiple layers, look for cylinders.  
+                
                 while i < (self.layer_count-1):
                     if samples[i] > 0 and samples[i+1] > 0:
                         while (samples[i+1] > 0) and i < (self.layer_count-1):
@@ -83,29 +89,17 @@ class TreeViewer():
                     elif samples[i] > 0:
                         self.num_circles += 1
                         raw_points.extend(self.create_circle(20*samples[i], x, y, start_z + i*SPACING))
+                        colors.extend(leaf_color*360)
                     i += 1
+                
             else:
                 for i in range(self.layer_count):
                     self.num_circles += 1
-                    raw_points.extend(self.create_circle(.0001, x, y, start_z + i*SPACING))
-             
-
-
-        #TODO:this is incredibly inefficient -- let's do better
-        ''''
-        for i in range(self.layer_count):
-            for node in self.nodes:
-                if node.is_leaf():
-                    r = 20*node.get_count(i) 
-                    if r == None:
-                        print("ERROR: couldn't retreive population count from node")
-                else:
-                    r = .0001
-                x, y, z = node.get_coords()
-                raw_points.extend(self.create_circle(r, x, y, cur_z))
-            cur_z += SPACING
-        '''
+                    raw_points.extend(self.create_circle(.001, x, y, start_z + i*SPACING))
+                    colors.extend(leaf_color*360)
+                    #colors.extend([0.4, 0.2, 0.2, 1.0]*360)
        
+
         #add the edge geometry to raw_points
         #TODO:again, incredibly inefficient 
         cur_z = start_z
@@ -113,9 +107,13 @@ class TreeViewer():
             for e in self.edges:
                 x1, y1, z1 = e.get_parent_coords()
                 x2, y2, z2 = e.get_child_coords()
-                raw_points.extend([x1, y1, cur_z, x2, y2, cur_z])
+                raw_points.extend([x1, y1, cur_z, 1, x2, y2, cur_z, 1])
+                colors.extend([0.4, 0.2, 0.2, 1.0]*2)
+                #colors.extend([1.0, 0.0, 0.0, 1.0]*2)
+                self.num_edges += 2
             cur_z += SPACING
 
+        raw_points.extend(colors)
         #convert all geometry to a numpy array
         self.vertices = numpy.array(raw_points,
                                     dtype=numpy.float32)
@@ -256,23 +254,18 @@ class TreeViewer():
             glDrawArrays(GL_LINES, i*2 + start, 2)    
             i += 1
 
+        #Draw cylinders -- this needs to be moved to the gpu
         quadric = gluNewQuadric()
         for c in self.cylinders:
             top = c[0]
             bot = c[1]
             top_x, top_y, top_z, top_r = top
             bot_x, bot_y, bot_z, bot_r = bot
-            #min_x = min(top_x, bot_x)
-            #min_y = min(top_y, bot_y)
-            #min_z = min(top_z, bot_z)
-            #x = min_x + abs(top_x - bot_x)
-            #y = min_y + abs(top_y - bot_y)
-            #z = min_z + abs(top_z - bot_z)
             glPushMatrix()
             glTranslate(top_x, top_y, top_z) 
             gluCylinder(quadric, bot_r, top_r, abs(top_z-bot_z), 20, 20)
             glPopMatrix() 
-
+       
         glPopMatrix()
         glBindVertexArray(0)
         glUseProgram(0)
@@ -287,6 +280,7 @@ class TreeViewer():
             temp.append(x+math.cos(radian)*radius) 
             temp.append(y+math.sin(radian)*radius)
             temp.append(z)
+            temp.append(1)
 
         return temp
 
@@ -297,19 +291,36 @@ class TreeViewer():
         glutInitWindowSize(1000,1000)
         glutCreateWindow('TreeViewer')
 
+        #vec4( 0.4, 0.2, 0.2, 1 );
         #create the shaders
-        self.fragment_shader = shaders.compileShader("""#version 120
+        self.fragment_shader = shaders.compileShader("""#version 130
+        in  vec4 theColor;
+        out vec4 fragColor;
         void main() {
-            gl_FragColor = vec4( 0.4, 0.2, 0.2, 1 );
+            fragColor = theColor;
         }""", GL_FRAGMENT_SHADER)
 
-        self.vertex_shader = shaders.compileShader("""#version 120
+        self.vertex_shader = shaders.compileShader("""#version 130
+        in vec4 color;
+        out vec4 theColor;
         void main() {
             gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+            theColor    = color;
         }""", GL_VERTEX_SHADER)
 
-        self.shader_program = shaders.compileProgram(self.vertex_shader,
-                                                     self.fragment_shader)
+
+        #previous way of creating the shader program
+        #self.shader_program = shaders.compileProgram(self.vertex_shader,
+        #                                             self.fragment_shader)
+
+
+        self.shader_program = glCreateProgram()
+        glBindAttribLocation(self.shader_program, 0, "position")
+        glBindAttribLocation(self.shader_program, 1, "color")
+        glAttachShader(self.shader_program, self.vertex_shader)
+        glAttachShader(self.shader_program, self.fragment_shader)
+        glLinkProgram(self.shader_program)
+
         #set up buffers on the gpu
         self.vao = glGenVertexArrays(1)
         glBindVertexArray(self.vao)
@@ -318,7 +329,15 @@ class TreeViewer():
         glBufferData(GL_ARRAY_BUFFER, self.vertices.nbytes, self.vertices,
                      GL_STATIC_DRAW)
         glEnableVertexAttribArray(0)
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
+
+        glEnableVertexAttribArray(1)
+        #offset = 4*4*(self.num_circles*360 + len(self.edges)*2)
+       
+        offset = 4*4*(self.num_circles*360 + self.num_edges)
+
+        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, None)
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(offset))
+
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
 
