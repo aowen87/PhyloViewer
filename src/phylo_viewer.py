@@ -87,16 +87,10 @@ class TreeViewer():
                 while i < (self.layer_count-1):
                     if samples[i] > 0 and samples[i+1] > 0:
                         while (samples[i+1] > 0) and i < (self.layer_count-1):
-<<<<<<< HEAD
-                            bot = (x, y, start_z + (i-1)*SPACING, 20*samples[i])
-                            top = (x, y, start_z + (i)*SPACING, 20*samples[i+1])
-                            self.cylinders.append((top, bot))
-=======
                             cylinders.extend(self.create_cylinder(20*samples[i], 20*samples[i+1],
                                               x, y, start_z + i*SPACING, SPACING))
                             cyl_colors.extend(color_map(float(leaf_count)/float(num_leaves))*722)
                             self.num_cylinders += 1
->>>>>>> sandbox
                             i += 1
                     elif samples[i] > 0:
                         self.num_circles += 1
