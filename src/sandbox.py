@@ -56,11 +56,15 @@ class TreeViewer():
         start_z = -1*SPACING*(self.layer_count/2) #(self.num_samples/100)*-5
         raw_points = []
         cur_z      = start_z
-        self.cylinders  = []
+        self.cylinders  = [] #FIXME: need to replace with geometry
         self.num_circles = 0
         self.num_edges   = 0
 
+        self.cyl_points = []
         colors = []
+        cyl_colors = []
+        cyl_points = []
+        self.num_cylinders = 0
 
         color_map  = matplotlib.cm.get_cmap('Paired')        
         #leaf_color = [0.2, 0.8, 0.3, 1.0]
@@ -86,9 +90,13 @@ class TreeViewer():
                 while i < (self.layer_count-1):
                     if samples[i] > 0 and samples[i+1] > 0:
                         while (samples[i+1] > 0) and i < (self.layer_count-1):
-                            bot = (x, y, start_z + (i-1)*SPACING, 20*samples[i])
-                            top = (x, y, start_z + i*SPACING, 20*samples[i+1])
-                            self.cylinders.append((top, bot))
+                            #bot = (x, y, start_z + (i-1)*SPACING, 20*samples[i])
+                            #top = (x, y, start_z + i*SPACING, 20*samples[i+1])
+                            #self.cylinders.append((top, bot))
+                            cyl_points.extend(self.create_cylinder(20*samples[i], 20*samples[i+1],
+                                              x, y, start_z + i*SPACING, SPACING))
+                            cyl_colors.extend(color_map(float(leaf_count)/float(num_leaves))*2888)
+                            self.num_cylinders += 1
                             i += 1
                     elif samples[i] > 0:
                         self.num_circles += 1
@@ -101,14 +109,8 @@ class TreeViewer():
                 for i in range(self.layer_count):
                     self.num_circles += 1
                     raw_points.extend(self.create_circle(.001, x, y, start_z + i*SPACING))
-                    #leaf_count += 1
-                    #colors.extend(color_map(float(leaf_count/num_leaves))*360)
                     colors.extend([0.4, 0.2, 0.2, 1.0]*360)
        
-
-        print("leaf count: " + str(leaf_count))
-        print("num of leaves: " + str(num_leaves))
-        print("num circles: " + str(self.num_circles))
         #add the edge geometry to raw_points
         #TODO:again, incredibly inefficient 
         cur_z = start_z
@@ -122,7 +124,9 @@ class TreeViewer():
                 self.num_edges += 2
             cur_z += SPACING
 
+        raw_points.extend(cyl_points)
         raw_points.extend(colors)
+        raw_points.extend(cyl_colors)
         #convert all geometry to a numpy array
         self.vertices = numpy.array(raw_points,
                                     dtype=numpy.float32)
@@ -254,6 +258,14 @@ class TreeViewer():
         glRotatef(self.z_deg, 0, 0, 1)
         glDisable(GL_CULL_FACE)
 
+
+        #points = self.create_cylinder(5, 1, -3, -9, 8, 5)
+        #glBegin(GL_TRIANGLE_STRIP)
+        #for i in range(0, len(points), 3):
+        #    glVertex3f(points[i], points[i+1], points[i+2])
+        #glEnd()
+
+        
         #Draw the nodes
         i = 0
         while i < num_nodes:
@@ -263,8 +275,15 @@ class TreeViewer():
         #Draw the branches
         start = i*360
         i = 0
-        while i < (num_edges):
+        while i < num_edges:
             glDrawArrays(GL_LINES, i*2 + start, 2)    
+            i += 1
+
+        #FIXME: they aren't drawing...
+        start = i*2
+        i = 0
+        while i < self.num_cylinders:
+            glDrawArrays(GL_TRIANGLE_STRIP, i*2888 + start, 2888)
             i += 1
 
         #Draw cylinders -- this needs to be moved to the gpu
@@ -278,7 +297,7 @@ class TreeViewer():
             glTranslate(top_x, top_y, top_z) 
             gluCylinder(quadric, bot_r, top_r, abs(top_z-bot_z), 20, 20)
             glPopMatrix() 
-       
+      
         glPopMatrix()
         glBindVertexArray(0)
         glUseProgram(0)
@@ -286,16 +305,31 @@ class TreeViewer():
       
 
     def create_circle(self, radius, x, y, z):
-        deg2rad = 3.14159/180
-        temp = [] 
+        deg2rad = math.pi/180.0
+        points = [] 
         for i in range(0, 360):
-            radian = i*deg2rad
-            temp.append(x+math.cos(radian)*radius) 
-            temp.append(y+math.sin(radian)*radius)
-            temp.append(z)
-            temp.append(1)
+            radian = float(i)*deg2rad
+            points.append(x + math.cos(radian)*radius) 
+            points.append(y + math.sin(radian)*radius)
+            points.append(z)
+            points.append(1)
+        return points
 
-        return temp
+
+    def create_cylinder(self, top_radius, bot_radius, x, y, z, h):
+        deg2rad = math.pi/180.0
+        points = []
+        for i in range(361):
+            radian = float(i)*deg2rad
+            points.append(x + math.cos(radian)*top_radius)
+            points.append(y + math.sin(radian)*top_radius)
+            points.append(z + h)
+            points.append(1.0)
+            points.append(x + math.cos(radian)*bot_radius)
+            points.append(y + math.sin(radian)*bot_radius)
+            points.append(z - h)
+            points.append(1.0)
+        return points             
 
     
     def execute(self):
@@ -327,9 +361,6 @@ class TreeViewer():
 
 
         #previous way of creating the shader program
-        #self.shader_program = shaders.compileProgram(self.vertex_shader,
-        #                                             self.fragment_shader)
-
 
         self.shader_program = glCreateProgram()
         glBindAttribLocation(self.shader_program, 0, "position")
@@ -346,14 +377,14 @@ class TreeViewer():
         glBufferData(GL_ARRAY_BUFFER, self.vertices.nbytes, self.vertices,
                      GL_STATIC_DRAW)
         glEnableVertexAttribArray(0)
-
         glEnableVertexAttribArray(1)
+        #glEnableVertexAttribArray(2)
         #offset = 4*4*(self.num_circles*360 + len(self.edges)*2)
        
-        offset = 4*4*(self.num_circles*360 + self.num_edges)
+        color_offset = 4*4*(self.num_circles*360 + self.num_edges + self.num_cylinders*2888)
 
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, None)
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(offset))
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(color_offset))
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
