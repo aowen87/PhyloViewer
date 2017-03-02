@@ -31,13 +31,14 @@ class TreeViewer():
     '''
        A 3d pyholgenetic tree viewer (under construction) 
     '''
-    def __init__(self, nodes, edges, num_leaves, sample_count, layers):
+    def __init__(self, tree, layers):
     
         self.layer_count = layers
-        self.num_samples = sample_count
-        self.num_leaves  = num_leaves
-        self.nodes       = nodes
-        self.edges       = edges
+        self.num_samples = tree.get_num_samples()
+        self.num_leaves  = tree.get_num_leaves()
+        self.nodes       = tree.get_nodes()
+        self.edges       = tree.get_edges()
+        self.radius      = tree.get_radius()
         self.rot_y_left  = 0
         self.rot_y_right = 0
         self.rot_x_up    = 0
@@ -81,7 +82,7 @@ class TreeViewer():
                 if self.layer_count == 1:
                     self.num_circles += 1
                     raw_points.extend(self.create_circle(20*samples[i], x, y, start_z + i*SPACING))
-                    colors.extend(color_map(float(leaf_count)/float(num_leaves))*360)
+                    colors.extend(color_map(float(leaf_count)/float(self.num_leaves))*360)
 
                 #if we have multiple layers, look for cylinders.  
                 while i < (self.layer_count-1):
@@ -89,13 +90,13 @@ class TreeViewer():
                         while (samples[i+1] > 0) and i < (self.layer_count-1):
                             cylinders.extend(self.create_cylinder(20*samples[i], 20*samples[i+1],
                                               x, y, start_z + i*SPACING, SPACING))
-                            cyl_colors.extend(color_map(float(leaf_count)/float(num_leaves))*722)
+                            cyl_colors.extend(color_map(float(leaf_count)/float(self.num_leaves))*722)
                             self.num_cylinders += 1
                             i += 1
                     elif samples[i] > 0:
                         self.num_circles += 1
                         raw_points.extend(self.create_circle(20*samples[i], x, y, start_z + i*SPACING))
-                        colors.extend(color_map(float(leaf_count)/float(num_leaves))*360)
+                        colors.extend(color_map(float(leaf_count)/float(self.num_leaves))*360)
                     i += 1
                 leaf_count += 1
                 
@@ -252,6 +253,18 @@ class TreeViewer():
         glRotatef(self.y_deg, 0, 1, 0)
         glRotatef(self.z_deg, 0, 0, 1)
         glDisable(GL_CULL_FACE)
+
+        #TODO: testing putting down a plate to distinguish each tree. 
+        #      Ideally, we can make these plates semi-transparrent and 
+        #      draw the trees on top of them.  
+        deg2rad = math.pi/180.0
+        glBegin(GL_TRIANGLE_FAN)
+        for i in range(0, 360):
+            radian = float(i)*deg2rad
+            glVertex3f(math.cos(radian)*self.radius, 
+                       math.sin(radian)*self.radius,
+                       0.1)
+        glEnd()
 
         #Draw the nodes
         i = 0
@@ -413,7 +426,6 @@ if __name__ == '__main__':
     #if tree == 0:
     #   print('ERROR: failed to build tree')
     #   sys.exit()
-    tv       = TreeViewer(tree.get_nodes(), tree.get_edges(), tree.total_leaves,
-                          tree.get_num_samples(), layers) 
+    tv       = TreeViewer(tree, layers) 
     tv.execute()
 

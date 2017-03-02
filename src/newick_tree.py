@@ -29,6 +29,7 @@ class NewickTree():
         self.total_leaves = 0
         self.root         = Node()
         self.counts_map   = counts_map
+        self.radius       = 0 
 
         #A list of odd characters I've found in newick strings. 
 	self.odd_chars    = ['.', ' ', '_', '/', '-', '+', '*']
@@ -44,6 +45,12 @@ class NewickTree():
 
     def get_root(self):
         return self.root
+
+    def get_num_leaves(self):
+        return self.total_leaves
+
+    def get_radius(self):
+        return self.radius
 
     def update_depth(self):
         '''
@@ -309,6 +316,7 @@ class NewickTree():
         edge coordinates must be computed after the node 
         coordinates are finalized. 
         '''
+        self.radius = self.total_leaves*.1 
         size = len(self.nodes)
         for i in range(size):
             cur_node = self.nodes[i]
@@ -323,9 +331,8 @@ class NewickTree():
             x = cur_node.get_coord(0)
             y = cur_node.get_coord(1)
             if self.total_leaves > 5:
-                scale = self.total_leaves*.1 
-                self.nodes[i].set_coord(0, x*scale)
-                self.nodes[i].set_coord(1, y*scale)
+                self.nodes[i].set_coord(0, x*self.radius)
+                self.nodes[i].set_coord(1, y*self.radius)
             else:
                 self.nodes[i].set_coord(0, x)
                 self.nodes[i].set_coord(1, y)
