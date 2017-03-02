@@ -254,6 +254,18 @@ class TreeViewer():
         glRotatef(self.z_deg, 0, 0, 1)
         glDisable(GL_CULL_FACE)
 
+        #TODO: testing putting down a plate to distinguish each tree. 
+        #      Ideally, we can make these plates semi-transparrent and 
+        #      draw the trees on top of them.  
+        deg2rad = math.pi/180.0
+        glBegin(GL_TRIANGLE_FAN)
+        for i in range(0, 360):
+            radian = float(i)*deg2rad
+            glVertex3f(math.cos(radian)*self.radius, 
+                       math.sin(radian)*self.radius,
+                       0.1)
+        glEnd()
+
         #Draw the nodes
         i = 0
         while i < num_nodes:
