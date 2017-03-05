@@ -57,7 +57,7 @@ class TreeViewer():
         start_z = -1*SPACING*(self.layer_count/2) #(self.num_samples/100)*-5
         raw_points = []
         self.num_circles = 0
-        self.num_edge_points = 0
+        self.num_edges   = 0
 
         colors = []
         cyl_colors = []
@@ -68,7 +68,8 @@ class TreeViewer():
         leaf_count = 0
         
         #Prototype for leaf interpolation. 
-        #TODO: we could probably make this signficantly more effecient
+        #Eventually, I'll want to send the cylinder geometry to the
+        #gpu for direct rendering. For now, though, I'm just using gluCylinder. 
         for node in self.nodes:
             #FIXME: the leaf counter is still off for layered display
             x, y, z = node.get_coords()
@@ -111,31 +112,22 @@ class TreeViewer():
             for e in self.edges:
                 x1, y1, z1 = e.get_parent_coords()
                 x2, y2, z2 = e.get_child_coords()
-                raw_points.extend([x1, y1, cur_z+.2, 1, x2, y2, cur_z+.2, 1])
-                raw_points.extend([x1, y1, cur_z-.2, 1, x2, y2, cur_z-.2, 1])
-                #colors.extend([0.4, 0.2, 0.2, 1.0]*4)
-                colors.extend([1.0, 0.9, 0.41, 1.0]*4)
-                self.num_edge_points += 4
+                raw_points.extend([x1, y1, cur_z, 1, x2, y2, cur_z, 1])
+                #raw_points.extend([x1, y1, cur_z, 1, x2, y2, cur_z, 1])
+                #colors.extend([0.4, 0.2, 0.2, 1.0]*2)
+                colors.extend([1.0, 0.9, 0.41, 1.0]*2)
+                self.num_edges += 2
             cur_z += SPACING
 
         raw_points.extend(cylinders)
 
-        plate_colors = []
-        plate_rims   = []
-        rim_colors   = []
+        #FIXME: testing
         for i in range(self.layer_count):
-            raw_points.extend(self.create_circle(self.radius-.1, 0, 0, start_z + i*SPACING))
-            plate_rims.extend(self.create_circle(self.radius, 0, 0, start_z + i*SPACING))
-            #plate_colors.extend([0.77, 0.77, 0.77, 1.0]*360)
-            plate_colors.extend([0.86, 0.92, 0.95, 1.0]*360)
-            rim_colors.extend([0.0, 0.0, 0.0, 1.0]*360)
+            raw_points.extend(self.create_circle(self.radius, 0, 0, start_z + i*SPACING))
 
 
-        raw_points.extend(plate_rims)
         raw_points.extend(colors)
         raw_points.extend(cyl_colors)
-        raw_points.extend(plate_colors)
-        raw_points.extend(rim_colors)
 
         #convert all geometry to a numpy array
         self.vertices = numpy.array(raw_points,
@@ -153,9 +145,8 @@ class TreeViewer():
         Check rotation and zoom triggers, and
         act accordingly.
         '''
-        #TODO: uniform isn't working yet... update-> this isn't
-        #       how I'm supposed to use uniforms. I'll fix it later. 
-        #loc = glGetUniformLocation(self.shader_program, "go")
+        #FIXME: uniform isn't working yet...
+        loc = glGetUniformLocation(self.shader_program, "go")
         if self.rot_y_left:
             self.y_deg += 1 
             #if (loc!=-1):
@@ -200,9 +191,6 @@ class TreeViewer():
 
     def char_key_press(self, key, x, y):
         '''
-        Check for c or z key presses. These keys
-        are corresponding to rotation around the 
-        z axis.  
         '''
         if key == 'c' or key == 'C':
             self.rot_z_right = 1
@@ -227,11 +215,6 @@ class TreeViewer():
         glutPostRedisplay()
 
     def char_key_release(self, key, x, y):
-        '''
-        Check for c or z key release. These keys
-        are corresponding to rotation around the 
-        z axis.  
-        '''
         if key == 'c' or key == 'C':
             self.rot_z_right = 0
         elif key == 'z' or key == 'Z':
@@ -258,9 +241,9 @@ class TreeViewer():
         Display the geometry. 
         '''
 
+        #testing multi layer dipslay
         num_nodes = self.num_circles #len(self.nodes)*self.layer_count
         #num_edges = len(self.edges)*self.layer_count
-        num_edges = self.num_edge_points/2
 
         glLoadIdentity()
         gluLookAt(0,0,self.num_leaves*15+self.start_zoom + self.zoom_val,
@@ -277,11 +260,20 @@ class TreeViewer():
         glRotatef(self.z_deg, 0, 0, 1)
         glDisable(GL_CULL_FACE)
 
-        #TODO: the perpective isn't right yet, and
-        #      I also need to adjust for screen w/h changes. 
-        #win_w = glutGet(GLUT_WINDOW_WIDTH)
-        #win_h = glutGet(GLUT_WINDOW_HEIGHT)
-        #gluPerspective(60.,float(win_w)/float(win_h),-10,100.)
+        #TODO: testing putting down a plate to distinguish each tree. 
+        #      Ideally, we can make these plates semi-transparrent and 
+        #      draw the trees on top of them.  
+        '''
+        deg2rad = math.pi/180.0
+        glBegin(GL_TRIANGLE_FAN)
+        for i in range(0, 360):
+            radian = float(i)*deg2rad
+            glVertex3f(math.cos(radian)*self.radius, 
+                       math.sin(radian)*self.radius,
+                       0.1)
+        glEnd()
+        '''
+
         #Draw the nodes
         i = 0
         while i < num_nodes:
@@ -291,7 +283,7 @@ class TreeViewer():
         #Draw the branches
         edge_start = i*360
         i = 0
-        while i < num_edges:
+        while i < self.num_edges:
             glDrawArrays(GL_LINES, i*2 + edge_start, 2)    
             i += 1
 
@@ -302,20 +294,6 @@ class TreeViewer():
             glDrawArrays(GL_TRIANGLE_STRIP, i*722 + cyl_start, 722)
             i += 1
 
-        #Draw plates
-        plate_start = i*722 + cyl_start
-        i = 0
-        while i < self.layer_count:
-            glDrawArrays(GL_TRIANGLE_FAN, i*360 + plate_start, 360)
-            i += 1
-
-        #Draw plate rims
-        rim_start = plate_start + i*360
-        i = 0
-        while i < self.layer_count:
-            glDrawArrays(GL_LINE_LOOP, i*360 + rim_start, 360)
-            i += 1
-
         glPopMatrix()
         glBindVertexArray(0)
         glUseProgram(0)
@@ -323,11 +301,6 @@ class TreeViewer():
       
 
     def create_circle(self, radius, x, y, z):
-        '''
-        Create the geometry for a single circle. 
-        An array filled with the geometry is returned. 
-        Each point consists of x, y, z, 1
-        '''
         deg2rad = math.pi/180.0
         points = [] 
         for i in range(0, 360):
@@ -340,11 +313,6 @@ class TreeViewer():
 
 
     def create_cylinder(self, top_radius, bot_radius, x, y, z, h):
-        '''
-        Create the geometry for a cylinder and store this 
-        geometry in an array that is returned. Each point
-        is of the form x, y, z, 1
-        '''
         deg2rad = math.pi/180.0
         points = []
         for i in range(361):
@@ -359,16 +327,12 @@ class TreeViewer():
             points.append(1.0)
         return points             
 
-    #TODO: this should probably be called 'set-up' or something
-    #      along those lines.  
+    
     def execute(self):
         glutInit(sys.argv)
-
         glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
         glutInitWindowSize(1000,1000)
         glutCreateWindow('TreeViewer')
-        win_w = glutGet(GLUT_WINDOW_WIDTH)
-        win_h = glutGet(GLUT_WINDOW_HEIGHT)
 
         #create the shaders
         self.fragment_shader = shaders.compileShader("""#version 130
@@ -408,8 +372,8 @@ class TreeViewer():
         glEnableVertexAttribArray(0)
         glEnableVertexAttribArray(1)
        
-        color_offset = 4*4*(self.num_circles*360 + self.num_edge_points + self.num_cylinders*722 +
-                            self.layer_count*360*2)
+        color_offset = 4*4*(self.num_circles*360 + self.num_edges + self.num_cylinders*722 +
+                            self.layer_count*360)
 
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, None)
         glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(color_offset))
@@ -433,8 +397,7 @@ class TreeViewer():
         glEnable(GL_LIGHT0)
         glutDisplayFunc(self.display)
         glMatrixMode(GL_PROJECTION)
-        gluPerspective(1.,1.,-1.,900.)
- 
+        gluPerspective(1.,1.,-900.,900.)
         glMatrixMode(GL_MODELVIEW)
 
         #glutIgnoreKeyRepeat(1)
