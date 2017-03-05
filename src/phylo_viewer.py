@@ -123,7 +123,6 @@ class TreeViewer():
         plate_colors = []
         plate_rims   = []
         rim_colors   = []
-        #FIXME: testing
         for i in range(self.layer_count):
             raw_points.extend(self.create_circle(self.radius-.1, 0, 0, start_z + i*SPACING))
             plate_rims.extend(self.create_circle(self.radius, 0, 0, start_z + i*SPACING))
@@ -154,8 +153,9 @@ class TreeViewer():
         Check rotation and zoom triggers, and
         act accordingly.
         '''
-        #FIXME: uniform isn't working yet...
-        loc = glGetUniformLocation(self.shader_program, "go")
+        #TODO: uniform isn't working yet... update-> this isn't
+        #       how I'm supposed to use uniforms. I'll fix it later. 
+        #loc = glGetUniformLocation(self.shader_program, "go")
         if self.rot_y_left:
             self.y_deg += 1 
             #if (loc!=-1):
@@ -200,6 +200,9 @@ class TreeViewer():
 
     def char_key_press(self, key, x, y):
         '''
+        Check for c or z key presses. These keys
+        are corresponding to rotation around the 
+        z axis.  
         '''
         if key == 'c' or key == 'C':
             self.rot_z_right = 1
@@ -224,6 +227,11 @@ class TreeViewer():
         glutPostRedisplay()
 
     def char_key_release(self, key, x, y):
+        '''
+        Check for c or z key release. These keys
+        are corresponding to rotation around the 
+        z axis.  
+        '''
         if key == 'c' or key == 'C':
             self.rot_z_right = 0
         elif key == 'z' or key == 'Z':
@@ -250,7 +258,6 @@ class TreeViewer():
         Display the geometry. 
         '''
 
-        #testing multi layer dipslay
         num_nodes = self.num_circles #len(self.nodes)*self.layer_count
         #num_edges = len(self.edges)*self.layer_count
         num_edges = self.num_edge_points/2
@@ -270,20 +277,8 @@ class TreeViewer():
         glRotatef(self.z_deg, 0, 0, 1)
         glDisable(GL_CULL_FACE)
 
-        #TODO: testing putting down a plate to distinguish each tree. 
-        #      Ideally, we can make these plates semi-transparrent and 
-        #      draw the trees on top of them.  
-        '''
-        deg2rad = math.pi/180.0
-        glBegin(GL_TRIANGLE_FAN)
-        for i in range(0, 360):
-            radian = float(i)*deg2rad
-            glVertex3f(math.cos(radian)*self.radius, 
-                       math.sin(radian)*self.radius,
-                       0.1)
-        glEnd()
-        '''
-
+        #TODO: the perpective isn't right yet, and
+        #      I also need to adjust for screen w/h changes. 
         #win_w = glutGet(GLUT_WINDOW_WIDTH)
         #win_h = glutGet(GLUT_WINDOW_HEIGHT)
         #gluPerspective(60.,float(win_w)/float(win_h),-10,100.)
@@ -328,6 +323,11 @@ class TreeViewer():
       
 
     def create_circle(self, radius, x, y, z):
+        '''
+        Create the geometry for a single circle. 
+        An array filled with the geometry is returned. 
+        Each point consists of x, y, z, 1
+        '''
         deg2rad = math.pi/180.0
         points = [] 
         for i in range(0, 360):
@@ -340,6 +340,11 @@ class TreeViewer():
 
 
     def create_cylinder(self, top_radius, bot_radius, x, y, z, h):
+        '''
+        Create the geometry for a cylinder and store this 
+        geometry in an array that is returned. Each point
+        is of the form x, y, z, 1
+        '''
         deg2rad = math.pi/180.0
         points = []
         for i in range(361):
@@ -354,7 +359,8 @@ class TreeViewer():
             points.append(1.0)
         return points             
 
-    
+    #TODO: this should probably be called 'set-up' or something
+    #      along those lines.  
     def execute(self):
         glutInit(sys.argv)
 
