@@ -41,8 +41,3 @@ Usage:
              rotation -- arrow keys (up, down, left, right)
                          'z' and 'c' for z axis rotation (case insensitive) 
 
-         **Note**
-         The viewer is currently using glCylinder for drawing the cylinders
-         between leaves. This is not very efficient and will produce a lag with
-         a large number of layers and large trees. These cylinders will eventually
-         be drawn through shaders, but, for now, just be aware of the lag. 
