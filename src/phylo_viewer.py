@@ -68,8 +68,7 @@ class TreeViewer():
         leaf_count = 0
         
         #Prototype for leaf interpolation. 
-        #Eventually, I'll want to send the cylinder geometry to the
-        #gpu for direct rendering. For now, though, I'm just using gluCylinder. 
+        #TODO: we could probably make this signficantly more effecient
         for node in self.nodes:
             #FIXME: the leaf counter is still off for layered display
             x, y, z = node.get_coords()
@@ -112,8 +111,8 @@ class TreeViewer():
             for e in self.edges:
                 x1, y1, z1 = e.get_parent_coords()
                 x2, y2, z2 = e.get_child_coords()
-                raw_points.extend([x1, y1, cur_z+.1, 1, x2, y2, cur_z+.1, 1])
-                raw_points.extend([x1, y1, cur_z-.1, 1, x2, y2, cur_z-.1, 1])
+                raw_points.extend([x1, y1, cur_z+.2, 1, x2, y2, cur_z+.2, 1])
+                raw_points.extend([x1, y1, cur_z-.2, 1, x2, y2, cur_z-.2, 1])
                 #colors.extend([0.4, 0.2, 0.2, 1.0]*4)
                 colors.extend([1.0, 0.9, 0.41, 1.0]*4)
                 self.num_edge_points += 4
@@ -429,8 +428,6 @@ class TreeViewer():
         glutDisplayFunc(self.display)
         glMatrixMode(GL_PROJECTION)
         gluPerspective(1.,1.,-1.,900.)
-        print(win_w)
-        print(win_h)
  
         glMatrixMode(GL_MODELVIEW)
 
