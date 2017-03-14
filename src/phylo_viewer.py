@@ -52,6 +52,8 @@ class TreeViewer():
         self.zoom_out    = 0
         self.zoom_val    = 0
         self.start_zoom  = 10
+        self.plate_count = 0
+        self.rim_count   = 0
 
         #Create the circle geometry
         start_z = -1*SPACING*(self.layer_count/2) #(self.num_samples/100)*-5
@@ -64,7 +66,7 @@ class TreeViewer():
         cylinders  = [] 
         self.num_cylinders = 0
 
-        color_map  = matplotlib.cm.get_cmap('viridis')        
+        color_map  = matplotlib.cm.get_cmap('rainbow')        
         leaf_count = 0
         
         #Prototype for leaf interpolation. 
@@ -105,7 +107,7 @@ class TreeViewer():
                     colors.extend([0.4, 0.2, 0.2, 1.0]*360)
        
         #add the edge geometry to raw_points
-        #TODO:again, incredibly inefficient 
+        '''
         cur_z = start_z
         for i in range(self.layer_count):
             for e in self.edges:
@@ -117,19 +119,65 @@ class TreeViewer():
                 colors.extend([1.0, 0.9, 0.41, 1.0]*4)
                 self.num_edge_points += 4
             cur_z += SPACING
+        '''
+        cur_z = start_z
+        if self.layer_count > 1:
+            for i in range(2):
+                for e in self.edges:
+                    x1, y1, z1 = e.get_parent_coords()
+                    x2, y2, z2 = e.get_child_coords()
+                    raw_points.extend([x1, y1, cur_z+.2, 1, x2, y2, cur_z+.2, 1])
+                    raw_points.extend([x1, y1, cur_z-.2, 1, x2, y2, cur_z-.2, 1])
+                    #colors.extend([0.4, 0.2, 0.2, 1.0]*4)
+                    colors.extend([1.0, 0.9, 0.41, 1.0]*4)
+                    self.num_edge_points += 4
+                cur_z = (start_z + (self.layer_count - 1)*SPACING)
+       
+        else:
+            for e in self.edges:
+                x1, y1, z1 = e.get_parent_coords()
+                x2, y2, z2 = e.get_child_coords()
+                raw_points.extend([x1, y1, cur_z+.2, 1, x2, y2, cur_z+.2, 1])
+                raw_points.extend([x1, y1, cur_z-.2, 1, x2, y2, cur_z-.2, 1])
+                #colors.extend([0.4, 0.2, 0.2, 1.0]*4)
+                colors.extend([1.0, 0.9, 0.41, 1.0]*4)
+                self.num_edge_points += 4
+
 
         raw_points.extend(cylinders)
 
         plate_colors = []
         plate_rims   = []
         rim_colors   = []
+        
+        cur_z = start_z
+        if self.layer_count > 1:
+            for i in range(2): 
+                raw_points.extend(self.create_circle(self.radius-.1, 0, 0, cur_z))
+                plate_colors.extend([0.86, 0.92, 0.95, 1.0]*360)
+                self.plate_count += 1
+                cur_z = (start_z + (self.layer_count - 1)*SPACING)
+
+        else:
+            raw_points.extend(self.create_circle(self.radius-.1, 0, 0, cur_z))
+            #plate_rims.extend(self.create_circle(self.radius, 0, 0, start_z + i*SPACING))
+            plate_colors.extend([0.86, 0.92, 0.95, 1.0]*360)
+            #rim_colors.extend([0.0, 0.0, 0.0, 1.0]*360)
+            self.plate_count += 1
+            
+        for i in range(self.layer_count):
+            plate_rims.extend(self.create_circle(self.radius, 0, 0, start_z + i*SPACING))
+            rim_colors.extend([0.0, 0.0, 0.0, 1.0]*360)
+            self.rim_count += 1
+           
+        '''
         for i in range(self.layer_count):
             raw_points.extend(self.create_circle(self.radius-.1, 0, 0, start_z + i*SPACING))
             plate_rims.extend(self.create_circle(self.radius, 0, 0, start_z + i*SPACING))
             #plate_colors.extend([0.77, 0.77, 0.77, 1.0]*360)
             plate_colors.extend([0.86, 0.92, 0.95, 1.0]*360)
             rim_colors.extend([0.0, 0.0, 0.0, 1.0]*360)
-
+        '''
 
         raw_points.extend(plate_rims)
         raw_points.extend(colors)
@@ -252,19 +300,26 @@ class TreeViewer():
             self.zoom_out = 1
         elif (button == GLUT_RIGHT_BUTTON and state == GLUT_UP):
             self.zoom_out = 0
+
+    def reshape(w, h):
+        glViewport(0, 0, w, h)
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        glFrustum(-1.0, 1.0, -1.0, 1.0, 1.5, 20.0)
+        glMatrixMade(GL_MODELVIEW)
     
     def display(self):
         '''
         Display the geometry. 
         '''
-
-        num_nodes = self.num_circles #len(self.nodes)*self.layer_count
-        #num_edges = len(self.edges)*self.layer_count
-        num_edges = self.num_edge_points/2
-
         glLoadIdentity()
+        '''
         gluLookAt(0,0,self.num_leaves*15+self.start_zoom + self.zoom_val,
                   0,0,0,
+                  0,1,0)
+        '''
+        gluLookAt(0,0,self.num_leaves*15+self.start_zoom + self.zoom_val,
+                  0,0,-1,
                   0,1,0)
         glClearColor(1.0, 1.0, 1.0, 1.0)
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
@@ -277,12 +332,11 @@ class TreeViewer():
         glRotatef(self.z_deg, 0, 0, 1)
         glDisable(GL_CULL_FACE)
 
-        #TODO: the perpective isn't right yet, and
-        #      I also need to adjust for screen w/h changes. 
-        #win_w = glutGet(GLUT_WINDOW_WIDTH)
-        #win_h = glutGet(GLUT_WINDOW_HEIGHT)
-        #gluPerspective(60.,float(win_w)/float(win_h),-10,100.)
-        #Draw the nodes
+
+        num_nodes = self.num_circles #len(self.nodes)*self.layer_count
+        #num_edges = len(self.edges)*self.layer_count
+        num_edges = self.num_edge_points/2
+
         i = 0
         while i < num_nodes:
             glDrawArrays(GL_TRIANGLE_FAN, i*360, 360)
@@ -305,14 +359,14 @@ class TreeViewer():
         #Draw plates
         plate_start = i*722 + cyl_start
         i = 0
-        while i < self.layer_count:
+        while i < self.plate_count:
             glDrawArrays(GL_TRIANGLE_FAN, i*360 + plate_start, 360)
             i += 1
 
         #Draw plate rims
         rim_start = plate_start + i*360
         i = 0
-        while i < self.layer_count:
+        while i < self.rim_count:
             glDrawArrays(GL_LINE_LOOP, i*360 + rim_start, 360)
             i += 1
 
@@ -409,7 +463,7 @@ class TreeViewer():
         glEnableVertexAttribArray(1)
        
         color_offset = 4*4*(self.num_circles*360 + self.num_edge_points + self.num_cylinders*722 +
-                            self.layer_count*360*2)
+                            (self.plate_count+self.rim_count)*360)
 
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, None)
         glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(color_offset))
@@ -432,10 +486,20 @@ class TreeViewer():
         glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 0.05)
         glEnable(GL_LIGHT0)
         glutDisplayFunc(self.display)
+        #glutReshapeFunc(reshape)#TODO: for some reason, reshaping seems 
+                                #      to work but throws a value error
+
+        #TODO: the perpective isn't right yet, and
+        w = glutGet(GLUT_WINDOW_WIDTH)
+        h = glutGet(GLUT_WINDOW_HEIGHT)
+        glViewport(0, 0, w, h)
+        glFrustum(-1.0, 1.0, -1.0, 1.0, 1.5, 20.0)
         glMatrixMode(GL_PROJECTION)
         gluPerspective(1.,1.,-1.,900.)
- 
+        #gluPerspective(45.0, float(w)/float(h), 1, 100.0)
         glMatrixMode(GL_MODELVIEW)
+
+ 
 
         #glutIgnoreKeyRepeat(1)
         glutSpecialFunc(self.special_key_press)
