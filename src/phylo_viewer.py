@@ -106,7 +106,7 @@ class TreeViewer():
                     raw_points.extend(self.create_circle(.001, x, y, start_z + i*SPACING))
                     colors.extend([0.4, 0.2, 0.2, 1.0]*360)
        
-        #add the edge geometry to raw_points
+        #Previous method of creating a full tree for every layer
         '''
         cur_z = start_z
         for i in range(self.layer_count):
@@ -120,6 +120,8 @@ class TreeViewer():
                 self.num_edge_points += 4
             cur_z += SPACING
         '''
+
+        #create the tree branches
         cur_z = start_z
         if self.layer_count > 1:
             for i in range(2):
@@ -150,6 +152,8 @@ class TreeViewer():
         plate_rims   = []
         rim_colors   = []
         
+        #Create the plates TODO: this can probably go in the
+        #branch loop
         cur_z = start_z
         if self.layer_count > 1:
             for i in range(2): 
@@ -160,16 +164,16 @@ class TreeViewer():
 
         else:
             raw_points.extend(self.create_circle(self.radius-.1, 0, 0, cur_z))
-            #plate_rims.extend(self.create_circle(self.radius, 0, 0, start_z + i*SPACING))
             plate_colors.extend([0.86, 0.92, 0.95, 1.0]*360)
-            #rim_colors.extend([0.0, 0.0, 0.0, 1.0]*360)
             self.plate_count += 1
             
+        #Create the layer rings/rims
         for i in range(self.layer_count):
             plate_rims.extend(self.create_circle(self.radius, 0, 0, start_z + i*SPACING))
             rim_colors.extend([0.0, 0.0, 0.0, 1.0]*360)
             self.rim_count += 1
            
+        #old method for creating plates and rims for every layer
         '''
         for i in range(self.layer_count):
             raw_points.extend(self.create_circle(self.radius-.1, 0, 0, start_z + i*SPACING))
@@ -179,6 +183,7 @@ class TreeViewer():
             rim_colors.extend([0.0, 0.0, 0.0, 1.0]*360)
         '''
 
+        #add the plate and rim geometry and colors to raw_points
         raw_points.extend(plate_rims)
         raw_points.extend(colors)
         raw_points.extend(cyl_colors)
@@ -201,16 +206,11 @@ class TreeViewer():
         Check rotation and zoom triggers, and
         act accordingly.
         '''
-        #TODO: uniform isn't working yet... update-> this isn't
-        #       how I'm supposed to use uniforms. I'll fix it later. 
-        #loc = glGetUniformLocation(self.shader_program, "go")
         if self.rot_y_left:
-            self.y_deg += 1 
-            #if (loc!=-1):
-                #glUniform1f(loc, GLfloat(1.0))
+            self.y_deg -= 1 
             glutPostRedisplay()
         elif self.rot_y_right:
-            self.y_deg -= 1 
+            self.y_deg += 1 
             glutPostRedisplay()
         if self.rot_x_up:
             self.x_deg += 1
@@ -219,16 +219,16 @@ class TreeViewer():
             self.x_deg -= 1
             glutPostRedisplay()
         if self.zoom_in:
-            self.zoom_val -= 6 
+            self.zoom_val += 1 
             glutPostRedisplay()
         elif self.zoom_out:
-            self.zoom_val += 6
+            self.zoom_val -= 1
             glutPostRedisplay()
         if self.rot_z_right:
-            self.z_deg -= 1
+            self.z_deg += 1
             glutPostRedisplay()
         elif self.rot_z_left:
-            self.z_deg += 1
+            self.z_deg -= 1
             glutPostRedisplay()
             
     def special_key_press(self, key, x, y):
@@ -313,13 +313,8 @@ class TreeViewer():
         Display the geometry. 
         '''
         glLoadIdentity()
-        '''
-        gluLookAt(0,0,self.num_leaves*15+self.start_zoom + self.zoom_val,
+        gluLookAt(0,0, -1.0*self.num_leaves + self.start_zoom + self.zoom_val,
                   0,0,0,
-                  0,1,0)
-        '''
-        gluLookAt(0,0,self.num_leaves*15+self.start_zoom + self.zoom_val,
-                  0,0,-1,
                   0,1,0)
         glClearColor(1.0, 1.0, 1.0, 1.0)
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
@@ -487,21 +482,17 @@ class TreeViewer():
         glEnable(GL_LIGHT0)
         glutDisplayFunc(self.display)
         #glutReshapeFunc(reshape)#TODO: for some reason, reshaping seems 
-                                #      to work but throws a value error
+                                 #      to work but throws a value error.
+                                 #      I'm not using it for now.
 
-        #TODO: the perpective isn't right yet, and
         w = glutGet(GLUT_WINDOW_WIDTH)
         h = glutGet(GLUT_WINDOW_HEIGHT)
         glViewport(0, 0, w, h)
-        glFrustum(-1.0, 1.0, -1.0, 1.0, 1.5, 20.0)
+        glFrustum(-1.0, 1.0, -1.0, 1.0, 1.0, 1000000000.0)
         glMatrixMode(GL_PROJECTION)
-        gluPerspective(1.,1.,-1.,900.)
-        #gluPerspective(45.0, float(w)/float(h), 1, 100.0)
+        gluPerspective(25.,float(w)/float(h),1.,1000000000.)
         glMatrixMode(GL_MODELVIEW)
 
- 
-
-        #glutIgnoreKeyRepeat(1)
         glutSpecialFunc(self.special_key_press)
         glutKeyboardFunc(self.char_key_press)
         glutIgnoreKeyRepeat(1)
@@ -510,7 +501,6 @@ class TreeViewer():
         glutIdleFunc(self.key_check)
     
         glutMouseFunc(self.mouse_button)
-        #glutMotionFunc(mouse_motion)
 
         glPushMatrix()
         glutMainLoop()
