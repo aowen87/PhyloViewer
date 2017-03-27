@@ -24,7 +24,7 @@ import numpy
 import argparse
 import ctypes
 
-MAX_LAYERS = 30
+MAX_LAYERS = 50
 SPACING    = 3
 
 class TreeViewer():
@@ -130,8 +130,11 @@ class TreeViewer():
                     x2, y2, z2 = e.get_child_coords()
                     raw_points.extend([x1, y1, cur_z+.2, 1, x2, y2, cur_z+.2, 1])
                     raw_points.extend([x1, y1, cur_z-.2, 1, x2, y2, cur_z-.2, 1])
-                    #colors.extend([0.4, 0.2, 0.2, 1.0]*4)
-                    colors.extend([1.0, 0.9, 0.41, 1.0]*4)
+                    colors.extend([0.0, .1437, .1437, 1.0]*4)#dark blue
+                    #colors.extend([0.0, 0.15, 0.07, 1.0]*4)#green
+                    #colors.extend([1.0, 1.0, 1.0, 1.0]*4)#white
+                    #colors.extend([1.0, 0.501960, 0.0, 1.0]*4)#orange 
+                    #colors.extend([0.42817, 0.01961, 0.01961, 1.0]*4)#red 
                     self.num_edge_points += 4
                 cur_z = (start_z + (self.layer_count - 1)*SPACING)
        
@@ -142,7 +145,8 @@ class TreeViewer():
                 raw_points.extend([x1, y1, cur_z+.2, 1, x2, y2, cur_z+.2, 1])
                 raw_points.extend([x1, y1, cur_z-.2, 1, x2, y2, cur_z-.2, 1])
                 #colors.extend([0.4, 0.2, 0.2, 1.0]*4)
-                colors.extend([1.0, 0.9, 0.41, 1.0]*4)
+                #colors.extend([1.0, 0.9, 0.41, 1.0]*4)
+                colors.extend([0.0, .1437, .1437, 1.0]*4)#dark blue
                 self.num_edge_points += 4
 
 
@@ -158,31 +162,24 @@ class TreeViewer():
         if self.layer_count > 1:
             for i in range(2): 
                 raw_points.extend(self.create_circle(self.radius-.1, 0, 0, cur_z))
-                plate_colors.extend([0.86, 0.92, 0.95, 1.0]*360)
+                plate_colors.extend([0.86, 0.92, 0.95, 1.0]*360)#light blue
+                #plate_colors.extend([0.0, 0.15, 0.07, 1.0]*360)#green
                 self.plate_count += 1
                 cur_z = (start_z + (self.layer_count - 1)*SPACING)
 
         else:
             raw_points.extend(self.create_circle(self.radius-.1, 0, 0, cur_z))
-            plate_colors.extend([0.86, 0.92, 0.95, 1.0]*360)
+            plate_colors.extend([0.86, 0.92, 0.95, 1.0]*360)#light blue
             self.plate_count += 1
             
         #Create the layer rings/rims
         for i in range(self.layer_count):
             plate_rims.extend(self.create_circle(self.radius, 0, 0, start_z + i*SPACING))
-            rim_colors.extend([0.0, 0.0, 0.0, 1.0]*360)
+            rim_colors.extend([0.0, 0.0, 0.0, 1.0]*360)#black
+            #rim_colors.extend([0.0, 0.287, 0.0, 1.0]*360)#green
+            #rim_colors.extend([0.86, 0.92, 0.95, 1.0]*360)#light blue
             self.rim_count += 1
            
-        #old method for creating plates and rims for every layer
-        '''
-        for i in range(self.layer_count):
-            raw_points.extend(self.create_circle(self.radius-.1, 0, 0, start_z + i*SPACING))
-            plate_rims.extend(self.create_circle(self.radius, 0, 0, start_z + i*SPACING))
-            #plate_colors.extend([0.77, 0.77, 0.77, 1.0]*360)
-            plate_colors.extend([0.86, 0.92, 0.95, 1.0]*360)
-            rim_colors.extend([0.0, 0.0, 0.0, 1.0]*360)
-        '''
-
         #add the plate and rim geometry and colors to raw_points
         raw_points.extend(plate_rims)
         raw_points.extend(colors)
